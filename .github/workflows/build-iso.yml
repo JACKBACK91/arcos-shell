@@ -3,162 +3,93 @@ name: Build ArcOS ISO
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:   # lets you trigger manually from GitHub website
+  workflow_dispatch:
 
 jobs:
   build-iso:
-    runs-on: ubuntu-22.04   # free Ubuntu runner — has live-build available
+    runs-on: ubuntu-22.04
     timeout-minutes: 90
 
     steps:
-      # ── 1. Checkout ───────────────────────────────────
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # ── 2. Node.js + Electron AppImage ────────────────
-      - name: Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install npm dependencies
+      - name: Install dependencies
         run: npm install
 
-      - name: Build Electron AppImage
-        run: |
-          # electron-builder needs these on Ubuntu
-          sudo apt-get install -y \
-            libopenjp2-tools \
-            rpm \
-            fakeroot \
-            dpkg \
-            libarchive-tools
-          npm run build:linux
-        env:
-          # Skip code signing for CI builds
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Copy AppImage into live-build chroot
-        run: |
-          APPIMAGE=$(ls dist/ArcOS*.AppImage | head -1)
-          echo "Found AppImage: $APPIMAGE"
-          cp "$APPIMAGE" \
-            scripts/iso/live-build-config/config/includes.chroot/opt/arcos/arcos-shell.AppImage
-          chmod +x \
-            scripts/iso/live-build-config/config/includes.chroot/opt/arcos/arcos-shell.AppImage
-
-      # ── 3. Install live-build ─────────────────────────
-      - name: Install live-build and dependencies
+      - name: Install electron-builder deps
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y \
-            live-build \
-            debootstrap \
-            squashfs-tools \
-            xorriso \
-            syslinux-utils \
-            isolinux \
-            grub-efi-amd64-bin \
-            grub-pc-bin \
-            mtools
+          sudo apt-get install -y rpm fakeroot dpkg libarchive-tools
 
-      # ── 4. Copy Linux config files into chroot ────────
-      - name: Stage Linux config files
+      - name: Build Electron AppImage
+        run: npx electron-builder --linux AppImage --x64
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Copy AppImage into chroot
         run: |
-          # greetd config
-          mkdir -p scripts/iso/live-build-config/config/includes.chroot/etc/greetd
-          cp linux/greetd/config.toml \
-            scripts/iso/live-build-config/config/includes.chroot/etc/greetd/config.toml
+          mkdir -p scripts/iso/live-build-config/config/includes.chroot/opt/arcos
+          APPIMAGE=$(ls dist/ArcOS*.AppImage | head -1)
+          echo "Found: $APPIMAGE"
+          cp "$APPIMAGE" scripts/iso/live-build-config/config/includes.chroot/opt/arcos/arcos-shell.AppImage
+          chmod +x scripts/iso/live-build-config/config/includes.chroot/opt/arcos/arcos-shell.AppImage
+          echo "AppImage staged successfully"
 
-          # wayfire config
-          mkdir -p scripts/iso/live-build-config/config/includes.chroot/etc/arcos
-          cp linux/wayfire/wayfire.ini \
-            scripts/iso/live-build-config/config/includes.chroot/etc/arcos/wayfire.ini
+      - name: Install live-build
+        run: |
+          sudo apt-get install -y \
+            live-build debootstrap squashfs-tools xorriso \
+            syslinux-utils isolinux grub-efi-amd64-bin grub-pc-bin mtools
 
-          # systemd services
-          mkdir -p scripts/iso/live-build-config/config/includes.chroot/etc/systemd/user
-          cp linux/systemd/arcos-shell.service \
-            scripts/iso/live-build-config/config/includes.chroot/etc/systemd/user/
-          cp linux/systemd/arcos-session.target \
-            scripts/iso/live-build-config/config/includes.chroot/etc/systemd/user/
+      - name: Stage config files
+        run: |
+          ROOT=$(pwd)
+          CHROOT="$ROOT/scripts/iso/live-build-config/config/includes.chroot"
 
-          # Wayland session entry
-          mkdir -p scripts/iso/live-build-config/config/includes.chroot/usr/share/wayland-sessions
-          cat > scripts/iso/live-build-config/config/includes.chroot/usr/share/wayland-sessions/arcos.desktop << 'SESSION'
-          [Desktop Entry]
-          Name=ArcOS
-          Comment=ArcOS Desktop Shell
-          Exec=/usr/local/bin/arcos-session
-          Type=Application
-          SESSION
+          mkdir -p "$CHROOT/etc/greetd"
+          cp linux/greetd/config.toml "$CHROOT/etc/greetd/config.toml"
 
-          # arcos-session script
-          mkdir -p scripts/iso/live-build-config/config/includes.chroot/usr/local/bin
-          cp scripts/setup/arcos-session.sh \
-            scripts/iso/live-build-config/config/includes.chroot/usr/local/bin/arcos-session
-          chmod +x \
-            scripts/iso/live-build-config/config/includes.chroot/usr/local/bin/arcos-session
+          mkdir -p "$CHROOT/etc/arcos"
+          cp linux/wayfire/wayfire.ini "$CHROOT/etc/arcos/wayfire.ini"
 
-          # desktop entries
-          mkdir -p scripts/iso/live-build-config/config/includes.chroot/usr/share/applications
-          cp linux/desktop-entries/*.desktop \
-            scripts/iso/live-build-config/config/includes.chroot/usr/share/applications/
+          mkdir -p "$CHROOT/etc/systemd/user"
+          cp linux/systemd/arcos-shell.service "$CHROOT/etc/systemd/user/"
+          cp linux/systemd/arcos-session.target "$CHROOT/etc/systemd/user/"
 
-      # ── 5. Run live-build ─────────────────────────────
+          mkdir -p "$CHROOT/usr/share/wayland-sessions"
+          printf '[Desktop Entry]\nName=ArcOS\nComment=ArcOS Shell\nExec=/usr/local/bin/arcos-session\nType=Application\n' \
+            > "$CHROOT/usr/share/wayland-sessions/arcos.desktop"
+
+          mkdir -p "$CHROOT/usr/local/bin"
+          cp scripts/setup/arcos-session.sh "$CHROOT/usr/local/bin/arcos-session"
+          chmod +x "$CHROOT/usr/local/bin/arcos-session"
+
+          mkdir -p "$CHROOT/usr/share/applications"
+          cp linux/desktop-entries/*.desktop "$CHROOT/usr/share/applications/"
+
       - name: Configure live-build
         working-directory: scripts/iso/live-build-config
         run: sudo lb config
 
-      - name: Build live ISO
+      - name: Build ISO
         working-directory: scripts/iso/live-build-config
-        run: sudo lb build 2>&1 | tee ../../../build/build.log
+        run: sudo lb build 2>&1 | tail -100
 
-      # ── 6. Rename and check ISO ───────────────────────
-      - name: Rename ISO
+      - name: Find and rename ISO
         run: |
-          ISO=$(ls scripts/iso/live-build-config/live-image-amd64.hybrid.iso 2>/dev/null || \
-                ls scripts/iso/live-build-config/*.iso 2>/dev/null | head -1)
+          ISO=$(find scripts/iso/live-build-config -name "*.iso" | head -1)
           echo "ISO found: $ISO"
-          cp "$ISO" build/arcos-0.7.0-amd64.iso
-          ls -lh build/arcos-0.7.0-amd64.iso
+          cp "$ISO" arcos-0.7.0-amd64.iso
 
-      # ── 7. Upload as GitHub Release artifact ──────────
-      - name: Upload ISO artifact
+      - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: arcos-iso
-          path: build/arcos-0.7.0-amd64.iso
+          path: arcos-0.7.0-amd64.iso
           retention-days: 30
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build/build.log
-          retention-days: 7
-
-      # ── 8. Create GitHub Release (on main push) ───────
-      - name: Create Release
-        if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v0.7.0-dev
-          name: ArcOS v0.7.0-dev
-          draft: true
-          files: build/arcos-0.7.0-amd64.iso
-          body: |
-            ## ArcOS Desktop Shell v0.7.0-dev
-
-            Bootable live ISO built automatically by GitHub Actions.
-
-            ### How to run
-            **VirtualBox:** New VM → Linux → Debian 64-bit → attach ISO → boot
-            **USB:** `dd if=arcos-0.7.0-amd64.iso of=/dev/sdX bs=4M status=progress`
-            **Ventoy:** Copy ISO to Ventoy USB → select from boot menu
-
-            ### Login
-            Username: `user`  Password: `arcos`
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
