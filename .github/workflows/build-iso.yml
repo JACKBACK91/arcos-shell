@@ -75,26 +75,38 @@ jobs:
 
       - name: Configure live-build
         working-directory: scripts/iso/live-build-config
-        run: sudo lb config
+        run: |
+          sudo lb config \
+            --distribution bookworm \
+            --architectures amd64 \
+            --binary-images iso-hybrid \
+            --archive-areas "main contrib non-free non-free-firmware" \
+            --mirror-bootstrap http://deb.debian.org/debian/ \
+            --mirror-chroot http://deb.debian.org/debian/ \
+            --mirror-binary http://deb.debian.org/debian/ \
+            --mirror-binary-security http://security.debian.org/debian-security/ \
+            --bootloaders isolinux \
+            --debian-installer none \
+            --apt-recommends false \
+            --memtest none \
+            --win32-loader false \
+            --hostname arcos \
+            --username user
 
       - name: Build ISO
         working-directory: scripts/iso/live-build-config
-        run: sudo lb build 2>&1 | tail -100
+        run: sudo lb build 2>&1 | tail -150
 
-      - name: Find ISO
+      - name: List output files
         run: |
-          echo "=== Searching for ISO files ==="
-          find . -name "*.iso" -o -name "*.hybrid.iso" 2>/dev/null
-          echo "=== Contents of live-build-config ==="
-          ls -lh scripts/iso/live-build-config/
-          echo "=== Done ==="
+          echo "=== ISO files found ==="
+          find scripts/iso/live-build-config -maxdepth 1 -name "*.iso" -ls
+          find scripts/iso/live-build-config -maxdepth 1 -name "*.img" -ls
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: arcos-iso
-          path: |
-            scripts/iso/live-build-config/*.iso
-            scripts/iso/live-build-config/*.hybrid.iso
+          path: scripts/iso/live-build-config/*.iso
           retention-days: 30
           if-no-files-found: warn
