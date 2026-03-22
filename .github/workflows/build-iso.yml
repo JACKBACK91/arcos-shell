@@ -6,10 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-iso:
+  build-appimage:
     runs-on: ubuntu-22.04
-    timeout-minutes: 90
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,77 +31,126 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           GH_TOKEN: ${{ github.token }}
 
-      - name: Copy AppImage into chroot
-        run: |
-          mkdir -p scripts/iso/live-build-config/config/includes.chroot/opt/arcos
-          APPIMAGE=$(ls dist/ArcOS*.AppImage | head -1)
-          echo "Found: $APPIMAGE"
-          cp "$APPIMAGE" scripts/iso/live-build-config/config/includes.chroot/opt/arcos/arcos-shell.AppImage
-          chmod +x scripts/iso/live-build-config/config/includes.chroot/opt/arcos/arcos-shell.AppImage
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: appimage
+          path: dist/ArcOS-*.AppImage
+          retention-days: 1
 
-      - name: Install live-build
-        run: |
-          sudo apt-get install -y \
-            live-build debootstrap squashfs-tools xorriso \
-            syslinux-utils isolinux grub-efi-amd64-bin grub-pc-bin mtools
+  build-iso:
+    runs-on: ubuntu-22.04
+    needs: build-appimage
+    timeout-minutes: 90
 
-      - name: Stage config files
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download AppImage
+        uses: actions/download-artifact@v4
+        with:
+          name: appimage
+          path: dist/
+
+      - name: Stage all config files
         run: |
           ROOT=$(pwd)
           CHROOT="$ROOT/scripts/iso/live-build-config/config/includes.chroot"
 
+          # AppImage
+          mkdir -p "$CHROOT/opt/arcos"
+          APPIMAGE=$(ls dist/ArcOS*.AppImage | head -1)
+          echo "Staging AppImage: $APPIMAGE"
+          cp "$APPIMAGE" "$CHROOT/opt/arcos/arcos-shell.AppImage"
+          chmod +x "$CHROOT/opt/arcos/arcos-shell.AppImage"
+
+          # greetd
           mkdir -p "$CHROOT/etc/greetd"
           cp linux/greetd/config.toml "$CHROOT/etc/greetd/config.toml"
 
+          # wayfire
           mkdir -p "$CHROOT/etc/arcos"
           cp linux/wayfire/wayfire.ini "$CHROOT/etc/arcos/wayfire.ini"
 
+          # systemd
           mkdir -p "$CHROOT/etc/systemd/user"
           cp linux/systemd/arcos-shell.service "$CHROOT/etc/systemd/user/"
           cp linux/systemd/arcos-session.target "$CHROOT/etc/systemd/user/"
 
+          # Wayland session
           mkdir -p "$CHROOT/usr/share/wayland-sessions"
           printf '[Desktop Entry]\nName=ArcOS\nComment=ArcOS Shell\nExec=/usr/local/bin/arcos-session\nType=Application\n' \
             > "$CHROOT/usr/share/wayland-sessions/arcos.desktop"
 
+          # session script
           mkdir -p "$CHROOT/usr/local/bin"
           cp scripts/setup/arcos-session.sh "$CHROOT/usr/local/bin/arcos-session"
           chmod +x "$CHROOT/usr/local/bin/arcos-session"
 
+          # desktop entries
           mkdir -p "$CHROOT/usr/share/applications"
           cp linux/desktop-entries/*.desktop "$CHROOT/usr/share/applications/"
 
-      - name: Configure live-build
-        working-directory: scripts/iso/live-build-config
-        run: |
-          sudo lb config \
-            --distribution bookworm \
-            --architectures amd64 \
-            --binary-images iso-hybrid \
-            --archive-areas "main contrib non-free non-free-firmware" \
-            --mirror-bootstrap http://deb.debian.org/debian/ \
-            --mirror-chroot http://deb.debian.org/debian/ \
-            --mirror-chroot-security http://security.debian.org/debian-security/ \
-            --mirror-binary http://deb.debian.org/debian/ \
-            --mirror-binary-security http://security.debian.org/debian-security/ \
-            --debian-installer none \
-            --apt-recommends false \
-            --memtest none
+          echo "=== Chroot contents ==="
+          find "$CHROOT" -type f
 
-      - name: Build ISO
-        working-directory: scripts/iso/live-build-config
-        run: sudo lb build 2>&1 | tail -150
-
-      - name: List output files
-        if: always()
+      - name: Build ISO inside Debian Bookworm Docker
         run: |
-          echo "=== ISO files ==="
-          find scripts/iso/live-build-config -maxdepth 1 \( -name "*.iso" -o -name "*.img" \) -ls || echo "None found"
+          # Copy the entire live-build-config into a temp dir Docker can see
+          cp -r scripts/iso/live-build-config /tmp/lbconfig
+
+          docker run --rm --privileged \
+            -v /tmp/lbconfig:/build \
+            debian:bookworm bash -c "
+              set -e
+
+              echo '=== Installing live-build ==='
+              apt-get update -qq
+              apt-get install -y --no-install-recommends \
+                live-build debootstrap squashfs-tools xorriso \
+                syslinux-utils isolinux grub-efi-amd64-bin grub-pc-bin mtools ca-certificates
+
+              echo '=== Configuring ==='
+              cd /build
+              lb config \
+                --distribution bookworm \
+                --architectures amd64 \
+                --binary-images iso-hybrid \
+                --archive-areas 'main contrib non-free non-free-firmware' \
+                --mirror-bootstrap http://deb.debian.org/debian/ \
+                --mirror-chroot http://deb.debian.org/debian/ \
+                --mirror-chroot-security http://security.debian.org/debian-security/ \
+                --mirror-binary http://deb.debian.org/debian/ \
+                --mirror-binary-security http://security.debian.org/debian-security/ \
+                --debian-installer none \
+                --apt-recommends false \
+                --memtest none
+
+              echo '=== Building ISO ==='
+              lb build
+
+              echo '=== Done — listing ISOs ==='
+              ls -lh /build/*.iso 2>/dev/null || echo 'No ISO found at root'
+              find /build -name '*.iso' -ls
+            "
+
+      - name: Copy ISO out of Docker volume
+        run: |
+          echo "=== Searching for ISO ==="
+          find /tmp/lbconfig -name "*.iso" -ls
+          ISO=$(find /tmp/lbconfig -name "*.iso" | head -1)
+          if [ -z "$ISO" ]; then
+            echo "ERROR: No ISO found!"
+            exit 1
+          fi
+          echo "Found: $ISO"
+          cp "$ISO" arcos-0.7.0-amd64.iso
+          ls -lh arcos-0.7.0-amd64.iso
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: arcos-iso
-          path: scripts/iso/live-build-config/*.iso
+          path: arcos-0.7.0-amd64.iso
           retention-days: 30
-          if-no-files-found: warn
