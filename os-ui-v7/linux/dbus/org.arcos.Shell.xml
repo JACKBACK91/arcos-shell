@@ -1,0 +1,77 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+  "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+
+<!--
+  /usr/share/dbus-1/interfaces/org.arcos.Shell.xml
+  ArcOS Shell D-Bus Interface Definition
+
+  This defines the IPC interface between the ArcOS shell and
+  system services / other applications on Linux.
+
+  Status: PLANNED — not yet implemented.
+  Implementation: electron/main.js will register these interfaces
+  using the dbus-next npm package.
+
+  Test with:
+    dbus-send --session --dest=org.arcos.Shell \
+      /org/arcos/Shell \
+      org.arcos.Shell.OpenApp \
+      string:terminal
+-->
+
+<node name="/org/arcos/Shell">
+
+  <interface name="org.arcos.Shell">
+
+    <!-- App management -->
+    <method name="OpenApp">
+      <arg direction="in"  type="s" name="app_id"/>
+    </method>
+
+    <method name="CloseApp">
+      <arg direction="in"  type="s" name="app_id"/>
+    </method>
+
+    <method name="ListOpenApps">
+      <arg direction="out" type="as" name="app_ids"/>
+    </method>
+
+    <method name="IsAppOpen">
+      <arg direction="in"  type="s"  name="app_id"/>
+      <arg direction="out" type="b"  name="is_open"/>
+    </method>
+
+    <!-- Shell state -->
+    <method name="ShowDesktop">
+    </method>
+
+    <method name="ToggleStartMenu">
+    </method>
+
+    <method name="GetVersion">
+      <arg direction="out" type="s" name="version"/>
+    </method>
+
+    <!-- Notifications -->
+    <method name="ShowNotification">
+      <arg direction="in"  type="s" name="icon"/>
+      <arg direction="in"  type="s" name="title"/>
+      <arg direction="in"  type="s" name="body"/>
+      <arg direction="out" type="u" name="notification_id"/>
+    </method>
+
+    <!-- Signals -->
+    <signal name="AppOpened">
+      <arg type="s" name="app_id"/>
+    </signal>
+
+    <signal name="AppClosed">
+      <arg type="s" name="app_id"/>
+    </signal>
+
+    <signal name="ShellReady">
+    </signal>
+
+  </interface>
+
+</node>

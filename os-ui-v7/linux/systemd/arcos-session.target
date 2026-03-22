@@ -1,0 +1,12 @@
+# /etc/systemd/user/arcos-session.target
+# ArcOS session target — groups all shell services together
+
+[Unit]
+Description=ArcOS Desktop Session
+Documentation=https://github.com/arcos/shell
+BindsTo=graphical-session.target
+Wants=arcos-shell.service
+After=graphical-session.target
+
+[Install]
+WantedBy=graphical-session.target

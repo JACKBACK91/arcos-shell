@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ArcOS</title>
+
+<!-- ═══════════════════════════════════════════
+     BROWSER-ONLY: All CSS loaded from local files.
+     LINUX/ELECTRON: These paths stay the same.
+     Qt WebEngine: Load via QWebEngineView with
+     setHtml() or local file scheme.
+═══════════════════════════════════════════════ -->
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/taskbar.css"/>
+<link rel="stylesheet" href="css/startmenu.css"/>
+<link rel="stylesheet" href="css/windows.css"/>
+<link rel="stylesheet" href="css/apps.css"/>
+<link rel="stylesheet" href="css/polish.css"/>
+</head>
+<body>
+
+<!-- ═══ DESKTOP ═══════════════════════════════
+     SHELL-CORE: The #desktop div is the root
+     surface. In a Linux shell this maps to the
+     root X11/Wayland window (compositor layer).
+═════════════════════════════════════════════ -->
+<div id="desktop">
+  <div id="icon-grid">
+    <div class="desktop-icon" data-app="explorer" ondblclick="Shell.openApp('explorer')">
+      <div class="d-ic">📁</div><div class="d-lb">Files</div>
+    </div>
+    <div class="desktop-icon" data-app="notes" ondblclick="Shell.openApp('notes')">
+      <div class="d-ic">📝</div><div class="d-lb">Notepad</div>
+    </div>
+    <div class="desktop-icon" data-app="terminal" ondblclick="Shell.openApp('terminal')">
+      <div class="d-ic">🖥️</div><div class="d-lb">Terminal</div>
+    </div>
+    <div class="desktop-icon" data-app="settings" ondblclick="Shell.openApp('settings')">
+      <div class="d-ic">⚙️</div><div class="d-lb">Settings</div>
+    </div>
+    <div class="desktop-icon" data-app="browser" ondblclick="Shell.openApp('browser')">
+      <div class="d-ic">🌐</div><div class="d-lb">Browser</div>
+    </div>
+    <div class="desktop-icon" data-app="about" ondblclick="Shell.openApp('about')">
+      <div class="d-ic">ℹ️</div><div class="d-lb">About ArcOS</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BRIGHTNESS OVERLAY ════════════════════
+     SHELL-CORE: In Linux, brightness is set via
+     xrandr or wlr-randr. This overlay is the
+     browser-only fallback for that.
+     MOCK: Yes — real brightness needs kernel/
+     backlight driver calls.
+═════════════════════════════════════════════ -->
+<div id="brightness-overlay"></div>
+
+<!-- ═══ TOAST AREA ════════════════════════════
+     SHELL-CORE: Maps to libnotify / D-Bus
+     org.freedesktop.Notifications in Linux.
+     BROWSER-ONLY: Using DOM toasts here.
+═════════════════════════════════════════════ -->
+<div id="toast-area"></div>
+
+<!-- ═══ CONTEXT MENU ══════════════════════════
+     SHELL-CORE: Right-click desktop menu.
+     Linux equiv: custom GTK/Qt context menu or
+     wlroots compositor hook.
+═════════════════════════════════════════════ -->
+<div id="ctx-menu">
+  <div class="ctx-item" onclick="Shell.ctxAction('view')">
+    <span class="ctx-ic">👁️</span><span>View</span><span class="ctx-kb">›</span>
+  </div>
+  <div class="ctx-item" onclick="Shell.ctxAction('sort')">
+    <span class="ctx-ic">↕️</span><span>Sort by</span><span class="ctx-kb">›</span>
+  </div>
+  <div class="ctx-item" onclick="Shell.ctxAction('refresh')">
+    <span class="ctx-ic">🔄</span><span>Refresh</span>
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="Shell.ctxAction('new-folder')">
+    <span class="ctx-ic">📁</span><span>New folder</span>
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="Shell.openApp('settings');Shell.hideCtx()">
+    <span class="ctx-ic">⚙️</span><span>Display settings</span>
+  </div>
+  <div class="ctx-item" onclick="Shell.openApp('settings');Shell.hideCtx()">
+    <span class="ctx-ic">🎨</span><span>Personalise</span>
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="Shell.openApp('about');Shell.hideCtx()">
+    <span class="ctx-ic">ℹ️</span><span>About ArcOS</span>
+  </div>
+</div>
+
+<!-- ═══ NOTIFICATION CENTER ═══════════════════
+     SHELL-CORE: Notification daemon.
+     Linux equiv: mako / dunst / swaync daemon
+     reading D-Bus org.freedesktop.Notifications.
+     BROWSER-ONLY: Hardcoded mock notifications.
+═════════════════════════════════════════════ -->
+<div id="notif-panel">
+  <div class="nc-head">
+    <div>
+      <div class="nc-time" id="nc-time">00:00</div>
+      <div class="nc-date" id="nc-date">Monday, 1 January</div>
+    </div>
+    <span class="nc-clear" onclick="Shell.clearNotifs()">Clear all</span>
+  </div>
+  <div class="nc-tiles">
+    <div class="nc-tile on"  onclick="this.classList.toggle('on')"><span>📶</span><span>Wi-Fi</span></div>
+    <div class="nc-tile on"  onclick="this.classList.toggle('on')"><span>🔵</span><span>Bluetooth</span></div>
+    <div class="nc-tile"     onclick="this.classList.toggle('on')"><span>✈️</span><span>Flight mode</span></div>
+    <div class="nc-tile on"  onclick="this.classList.toggle('on')"><span>🔕</span><span>Focus</span></div>
+    <div class="nc-tile"     onclick="this.classList.toggle('on')"><span>🌙</span><span>Night light</span></div>
+    <div class="nc-tile on"  onclick="this.classList.toggle('on')"><span>♿</span><span>Accessibility</span></div>
+  </div>
+  <!-- MOCK: Brightness/volume sliders — real values need ALSA/PulseAudio/backlight IPC -->
+  <div class="nc-sliders">
+    <div class="nc-slider-row">
+      <span>🔆</span>
+      <input type="range" min="0" max="100" value="80" oninput="Shell.setBrightness(this.value)"/>
+    </div>
+    <div class="nc-slider-row">
+      <span>🔊</span>
+      <input type="range" min="0" max="100" value="60"/>
+    </div>
+  </div>
+  <div class="nc-notif-list" id="nc-notifs"></div>
+</div>
+
+<!-- ═══ START MENU ═════════════════════════════
+     SHELL-CORE: App launcher.
+     Linux equiv: rofi / wofi / custom launcher.
+     App list should be generated from .desktop
+     files in /usr/share/applications/ in Linux.
+     BROWSER-ONLY: Hardcoded app list here.
+═════════════════════════════════════════════ -->
+<div id="start-menu">
+  <div class="sm-search-wrap">
+    <span class="sm-search-ic">🔍</span>
+    <input id="sm-q" class="sm-search-input" type="text"
+      placeholder="Search for apps, settings, and documents"
+      oninput="Shell.smFilter(this.value)"/>
+  </div>
+  <div class="sm-section-row">
+    <span class="sm-section-label">Pinned</span>
+    <button class="sm-all-btn">All apps ›</button>
+  </div>
+  <div class="sm-grid" id="sm-grid">
+    <div class="sm-app" data-id="explorer" onclick="Shell.openApp('explorer');Shell.closeStart()"><div class="sm-ic">📁</div><div class="sm-nm">Files</div></div>
+    <div class="sm-app" data-id="notes"    onclick="Shell.openApp('notes');Shell.closeStart()"   ><div class="sm-ic">📝</div><div class="sm-nm">Notepad</div></div>
+    <div class="sm-app" data-id="terminal" onclick="Shell.openApp('terminal');Shell.closeStart()"><div class="sm-ic">🖥️</div><div class="sm-nm">Terminal</div></div>
+    <div class="sm-app" data-id="settings" onclick="Shell.openApp('settings');Shell.closeStart()"><div class="sm-ic">⚙️</div><div class="sm-nm">Settings</div></div>
+    <div class="sm-app" data-id="browser"  onclick="Shell.openApp('browser');Shell.closeStart()" ><div class="sm-ic">🌐</div><div class="sm-nm">Browser</div></div>
+    <div class="sm-app" data-id="calc"     onclick="Shell.openApp('calc');Shell.closeStart()"    ><div class="sm-ic">🔢</div><div class="sm-nm">Calculator</div></div>
+    <div class="sm-app" data-id="about"    onclick="Shell.openApp('about');Shell.closeStart()"   ><div class="sm-ic">ℹ️</div><div class="sm-nm">About</div></div>
+    <div class="sm-app" data-id="store"    onclick="Shell.openApp('store');Shell.closeStart()"   ><div class="sm-ic">🛍️</div><div class="sm-nm">Store</div></div>
+    <div class="sm-app" data-id="mail"     onclick="Shell.openApp('mail');Shell.closeStart()"    ><div class="sm-ic">📧</div><div class="sm-nm">Mail</div></div>
+    <div class="sm-app" data-id="photos"   onclick="Shell.openApp('photos');Shell.closeStart()"  ><div class="sm-ic">🖼️</div><div class="sm-nm">Photos</div></div>
+    <div class="sm-app" data-id="music"    onclick="Shell.openApp('music');Shell.closeStart()"   ><div class="sm-ic">🎵</div><div class="sm-nm">Media Player</div></div>
+    <div class="sm-app" data-id="calendar" onclick="Shell.openApp('calendar');Shell.closeStart()"><div class="sm-ic">📅</div><div class="sm-nm">Calendar</div></div>
+  </div>
+  <div class="sm-section-row" style="padding-top:8px">
+    <span class="sm-section-label">Recent</span>
+    <button class="sm-all-btn">More ›</button>
+  </div>
+  <div class="sm-rec-grid">
+    <div class="sm-rec" onclick="Shell.openApp('notes');Shell.closeStart()">
+      <span class="sm-rec-ic">📄</span>
+      <div><div class="sm-rec-nm">README.md</div><div class="sm-rec-sub">Recently opened</div></div>
+    </div>
+    <div class="sm-rec" onclick="Shell.openApp('explorer');Shell.closeStart()">
+      <span class="sm-rec-ic">📊</span>
+      <div><div class="sm-rec-nm">Budget.xlsx</div><div class="sm-rec-sub">Yesterday, 3:14 PM</div></div>
+    </div>
+    <div class="sm-rec" onclick="Shell.openApp('settings');Shell.closeStart()">
+      <span class="sm-rec-ic">⚙️</span>
+      <div><div class="sm-rec-nm">Settings</div><div class="sm-rec-sub">2 hours ago</div></div>
+    </div>
+    <div class="sm-rec" onclick="Shell.openApp('notes');Shell.closeStart()">
+      <span class="sm-rec-ic">📝</span>
+      <div><div class="sm-rec-nm">notes.txt</div><div class="sm-rec-sub">2 days ago</div></div>
+    </div>
+  </div>
+  <div class="sm-footer">
+    <div class="sm-user-btn">
+      <div class="sm-avatar">👤</div>
+      <span class="sm-username" id="sm-username">User</span>
+    </div>
+    <div class="sm-power-row">
+      <button class="sm-pwr" title="Lock"  onclick="Shell.toast('🔒','Locked','Screen locked')">🔒</button>
+      <button class="sm-pwr" title="Sleep" onclick="Shell.toast('💤','Sleep','Going to sleep…')">💤</button>
+      <!-- MOCK: Power button — Linux: systemctl poweroff via D-Bus / logind -->
+      <button class="sm-pwr danger" title="Power" onclick="Shell.toast('⏻','Shutting down','ArcOS is shutting down…')">⏻</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TASKBAR ═════════════════════════════════
+     SHELL-CORE: The panel/taskbar.
+     Linux equiv: waybar / polybar / custom GTK
+     panel. Each .tb-pin = a pinned .desktop entry.
+     BROWSER-ONLY: onclick handlers, DOM buttons.
+═════════════════════════════════════════════ -->
+<div id="taskbar">
+  <div id="tb-center">
+    <button id="start-btn" title="Start" onclick="Shell.toggleStart()">
+      <div class="win-logo"><span></span><span></span><span></span><span></span></div>
+    </button>
+    <div id="search-pill" onclick="Shell.toggleStart();setTimeout(()=>document.getElementById('sm-q').focus(),60)">
+      <span class="sp-ico">🔍</span><span>Search</span>
+    </div>
+    <div class="tb-sep"></div>
+    <div id="tb-pinned">
+      <button class="tb-pin" title="Files"    data-pin="explorer" onclick="Shell.pinClick('explorer')">📁</button>
+      <button class="tb-pin" title="Browser"  data-pin="browser"  onclick="Shell.pinClick('browser')">🌐</button>
+      <button class="tb-pin" title="Terminal" data-pin="terminal" onclick="Shell.pinClick('terminal')">🖥️</button>
+      <button class="tb-pin" title="Settings" data-pin="settings" onclick="Shell.pinClick('settings')">⚙️</button>
+    </div>
+    <div class="tb-sep" id="tb-sep-apps" style="display:none"></div>
+    <div id="tb-apps"></div>
+  </div>
+  <!-- BROWSER-ONLY: Clock reads JS Date(). Linux: read from system clock via IPC. -->
+  <div id="tb-tray">
+    <div class="tray-cluster" onclick="Shell.toggleNotif()">
+      <span class="tray-ico" title="Network [MOCK]">📶</span>
+      <span class="tray-ico" title="Volume [MOCK]">🔊</span>
+      <span class="tray-ico" title="Battery [MOCK]">🔋</span>
+    </div>
+    <div class="clock-block" onclick="Shell.toggleNotif()">
+      <div id="clk-time">00:00</div>
+      <div id="clk-date">Mon 1 Jan</div>
+    </div>
+    <div class="show-desktop" title="Show desktop" onclick="Shell.toggleShowDesktop()"></div>
+  </div>
+</div>
+
+<!-- ═══ SCRIPTS ════════════════════════════════
+     Load order: shell core → app modules → boot
+═════════════════════════════════════════════ -->
+<script src="js/shell.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/apps/explorer.js"></script>
+<script src="js/apps/notes.js"></script>
+<script src="js/apps/terminal.js"></script>
+<script src="js/apps/settings.js"></script>
+<script src="js/apps/browser.js"></script>
+<script src="js/apps/calc.js"></script>
+<script src="js/apps/about.js"></script>
+<script src="js/apps/placeholders.js"></script>
+<script src="js/init.js"></script>
+</body>
+</html>

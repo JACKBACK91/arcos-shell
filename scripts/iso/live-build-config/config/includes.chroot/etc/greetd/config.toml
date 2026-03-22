@@ -1,0 +1,14 @@
+# /etc/greetd/config.toml — ArcOS live session
+# Auto-login for live USB (no password needed on live boot)
+
+[terminal]
+vt = 1
+
+[default_session]
+# Auto-login: start ArcOS session immediately on live boot
+command = "/usr/local/bin/arcos-session"
+user = "user"
+
+# For installed systems (uncomment to require login):
+# command = "tuigreet --time --remember --asterisks --greeting 'Welcome to ArcOS' --cmd /usr/local/bin/arcos-session"
+# user = "greeter"

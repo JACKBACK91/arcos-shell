@@ -1,0 +1,49 @@
+# /etc/systemd/user/arcos-shell.service
+# ArcOS Shell systemd user service
+# Installed to: /etc/systemd/user/arcos-shell.service
+#
+# This allows the shell to be managed via:
+#   systemctl --user start arcos-shell
+#   systemctl --user status arcos-shell
+#   journalctl --user -u arcos-shell
+#
+# Note: This is an ALTERNATIVE to launching via arcos-session.
+# In production, arcos-session handles startup directly.
+
+[Unit]
+Description=ArcOS Desktop Shell
+Documentation=https://github.com/arcos/shell
+After=graphical-session.target
+Wants=graphical-session.target
+PartOf=graphical-session.target
+
+# Restart if shell crashes (but not if user explicitly killed it)
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/arcos-shell
+ExecStop=/bin/kill -TERM $MAINPID
+
+# Environment
+Environment=ELECTRON_OZONE_PLATFORM_HINT=wayland
+Environment=GDK_BACKEND=wayland,x11
+Environment=WAYLAND_DISPLAY=wayland-1
+
+# Restart policy: on-failure, but not on clean exit (user logout)
+Restart=on-failure
+RestartSec=3
+
+# Resource limits
+MemoryHigh=800M
+MemoryMax=1200M
+CPUWeight=100
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=arcos-shell
+
+[Install]
+WantedBy=graphical-session.target

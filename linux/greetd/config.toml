@@ -1,0 +1,30 @@
+# /etc/greetd/config.toml
+# ArcOS greetd configuration
+# Installed to: /etc/greetd/config.toml
+#
+# greetd is a minimal, flexible login manager that handles PAM
+# authentication and launches user sessions.
+# Docs: https://sr.ht/~kennylevinsen/greetd/
+
+[terminal]
+# The VT to run greetd on (usually VT1 or VT7)
+vt = 1
+# Switch to this VT on startup
+switch = true
+
+[default_session]
+# The command greetd runs to show the login UI
+# tuigreet is a simple TUI login screen
+# For a graphical login, replace with an arcos-greeter command
+command = "tuigreet --time --remember --asterisks --greeting 'Welcome to ArcOS' --cmd /usr/local/bin/arcos-session"
+user = "greeter"
+
+# Alternatively, for automatic login (live USB / kiosk mode):
+# [default_session]
+# command = "/usr/local/bin/arcos-session"
+# user = "user"
+
+# For a custom graphical greeter (future):
+# [default_session]
+# command = "arcos-greeter"  # Electron-based login screen
+# user = "greeter"

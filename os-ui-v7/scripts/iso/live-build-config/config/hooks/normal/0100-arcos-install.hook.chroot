@@ -1,0 +1,67 @@
+#!/bin/sh
+# 0100-arcos-install.hook.chroot
+# Runs inside the live filesystem during ISO build
+# Installs ArcOS shell, launcher scripts, and services
+set -e
+
+echo "[ArcOS] Starting installation hook..."
+
+# ── Create directories ──────────────────────────────────
+mkdir -p /opt/arcos
+mkdir -p /etc/arcos
+mkdir -p /usr/share/wayland-sessions
+mkdir -p /usr/share/applications
+
+# ── AppImage launcher ───────────────────────────────────
+# The AppImage is placed in /opt/arcos/ by the CI workflow
+# before live-build runs (via config/includes.chroot/)
+if [ -f /opt/arcos/arcos-shell.AppImage ]; then
+    chmod +x /opt/arcos/arcos-shell.AppImage
+    echo "[ArcOS] AppImage found: $(ls -lh /opt/arcos/arcos-shell.AppImage)"
+else
+    echo "[ArcOS] WARNING: AppImage not found — shell will not launch"
+fi
+
+# ── arcos-shell wrapper ─────────────────────────────────
+cat > /usr/local/bin/arcos-shell << 'WRAPPER'
+#!/bin/bash
+export ELECTRON_OZONE_PLATFORM_HINT=wayland
+export GDK_BACKEND=wayland,x11
+export QT_QPA_PLATFORM=wayland
+export MOZ_ENABLE_WAYLAND=1
+
+if [ -f /opt/arcos/arcos-shell.AppImage ]; then
+    exec /opt/arcos/arcos-shell.AppImage \
+        --ozone-platform=wayland \
+        --enable-features=WaylandWindowDecorations \
+        --no-sandbox \
+        "$@"
+else
+    # Fallback: open index.html in a full-screen browser
+    exec chromium --kiosk --app=file:///opt/arcos/index.html "$@" 2>/dev/null || \
+    exec firefox --kiosk file:///opt/arcos/index.html "$@"
+fi
+WRAPPER
+chmod +x /usr/local/bin/arcos-shell
+
+# ── Enable greetd ───────────────────────────────────────
+systemctl enable greetd 2>/dev/null || true
+
+# ── Enable user systemd services ───────────────────────
+systemctl --global enable arcos-shell.service 2>/dev/null || true
+
+# ── Default user shell → bash ───────────────────────────
+sed -i 's|/bin/sh|/bin/bash|' /etc/passwd 2>/dev/null || true
+
+# ── Auto-login for live USB convenience ────────────────
+# In live mode, user is already logged in by live-config
+# greetd auto-login config is set via includes.chroot/etc/greetd/config.toml
+
+# ── Set hostname ────────────────────────────────────────
+echo "arcos" > /etc/hostname
+
+# ── sudoers for live user ───────────────────────────────
+echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/arcos-live
+chmod 440 /etc/sudoers.d/arcos-live
+
+echo "[ArcOS] Hook complete."

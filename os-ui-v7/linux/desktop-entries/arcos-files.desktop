@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Files
+GenericName=File Manager
+Comment=Browse and manage files
+Exec=arcos-shell --open-app=explorer
+Icon=system-file-manager
+Terminal=false
+Categories=System;FileManager;
+MimeType=inode/directory;
+StartupNotify=true

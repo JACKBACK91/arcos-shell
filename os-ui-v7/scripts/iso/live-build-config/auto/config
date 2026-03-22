@@ -1,0 +1,26 @@
+#!/bin/sh
+# ArcOS live-build auto configuration
+set -e
+
+lb config noauto \
+  --distribution bookworm \
+  --architectures amd64 \
+  --binary-images iso-hybrid \
+  --bootloaders "grub-efi,isolinux" \
+  --debian-installer none \
+  --archive-areas "main contrib non-free non-free-firmware" \
+  --apt-recommends false \
+  --backports false \
+  --hostname arcos \
+  --username user \
+  --image-name "live-image-amd64" \
+  --iso-volume "ArcOS 0.7.0" \
+  --iso-publisher "ArcOS Project" \
+  --iso-application "ArcOS Desktop Shell" \
+  --memtest none \
+  --win32-loader false \
+  --zsync false \
+  --mirror-bootstrap "http://deb.debian.org/debian/" \
+  --mirror-chroot "http://deb.debian.org/debian/" \
+  --mirror-binary "http://deb.debian.org/debian/" \
+  "${@}"

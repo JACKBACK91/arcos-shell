@@ -1,0 +1,69 @@
+# ArcOS package list for live-build
+# Installed inside the live ISO
+
+# Core system
+systemd
+systemd-sysv
+dbus
+udev
+sudo
+policykit-1
+
+# Networking
+network-manager
+wpasupplicant
+
+# Audio
+pipewire
+pipewire-pulse
+wireplumber
+
+# Wayland / display
+wayfire
+xwayland
+libgl1-mesa-dri
+mesa-utils
+libgles2
+
+# Login manager
+greetd
+tuigreet
+
+# Fonts (emoji + UI)
+fonts-noto
+fonts-noto-color-emoji
+
+# Electron runtime deps (Electron ships its own Chromium)
+libgtk-3-0
+libglib2.0-0
+libxss1
+libxtst6
+libnss3
+libasound2
+libgbm1
+libdrm2
+
+# Utilities
+bash
+bash-completion
+curl
+wget
+nano
+htop
+file
+xdg-utils
+shared-mime-info
+desktop-file-utils
+
+# Fallback terminal if shell crashes
+foot
+
+# Firmware
+firmware-linux-free
+amd64-microcode
+
+# Live system
+live-boot
+live-config
+live-config-systemd
+user-setup

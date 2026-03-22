@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/*.iso
+build/*.log
+scripts/iso/live-build-config/cache/
+scripts/iso/live-build-config/chroot/
+scripts/iso/live-build-config/binary/
+scripts/iso/live-build-config/.build/
+scripts/iso/live-build-config/live-image-*.iso
+*.AppImage
+*.deb
+*.exe
+*.dmg
+.DS_Store
+Thumbs.db

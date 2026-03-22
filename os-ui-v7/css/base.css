@@ -1,0 +1,233 @@
+/* ═══════════════════════════════════════════════
+   base.css — Design tokens & desktop
+═══════════════════════════════════════════════ */
+:root {
+  --font:       'Segoe UI Variable','Segoe UI',system-ui,-apple-system,sans-serif;
+  --font-mono:  'Cascadia Code','Consolas','Courier New',monospace;
+
+  /* Accent — overridden by settings */
+  --accent:     #0067C0;
+  --accent-hi:  #1a7fd4;
+  --accent-sub: rgba(0,103,192,0.16);
+  --accent-brd: rgba(0,103,192,0.45);
+
+  /* Mica / Acrylic layers */
+  --m-base:    rgba(28,28,36,0.88);
+  --m-surface: rgba(38,38,50,0.92);
+  --m-overlay: rgba(50,50,66,0.96);
+  --m-card:    rgba(255,255,255,0.042);
+  --m-hover:   rgba(255,255,255,0.065);
+  --m-active:  rgba(255,255,255,0.10);
+  --m-stroke:  rgba(255,255,255,0.08);
+  --m-stroke2: rgba(255,255,255,0.13);
+
+  --text:      rgba(255,255,255,0.95);
+  --text-2:    rgba(255,255,255,0.60);
+  --text-3:    rgba(255,255,255,0.32);
+
+  --r-sm: 4px;
+  --r:    8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+
+  --sh1: 0 2px 4px rgba(0,0,0,.18), 0 4px 16px rgba(0,0,0,.18);
+  --sh2: 0 8px 32px rgba(0,0,0,.32), 0 2px 8px rgba(0,0,0,.22);
+  --sh3: 0 24px 64px rgba(0,0,0,.55), 0 6px 20px rgba(0,0,0,.32);
+
+  --taskbar-h: 48px;
+  --transition-speed: 0.2s;
+
+  /* Wallpaper gradient IDs */
+  --wp: 'bloom';
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+
+html, body {
+  width:100%; height:100%; overflow:hidden;
+  font-family:var(--font); font-size:13px;
+  color:var(--text); background:#0d0d1a;
+  user-select:none; -webkit-font-smoothing:antialiased;
+}
+
+/* ─── Desktop ─────────────────────────────────── */
+#desktop {
+  position:fixed; inset:0; bottom:var(--taskbar-h);
+  overflow:hidden;
+  transition:filter 0.5s ease;
+}
+
+/* wallpaper layers — JS swaps .wp-* class */
+#desktop.wp-bloom {
+  background:
+    radial-gradient(ellipse 110% 80% at 12% 22%, rgba(0,80,200,0.55) 0%, transparent 55%),
+    radial-gradient(ellipse 80%  70% at 88% 78%, rgba(80,0,180,0.45) 0%, transparent 55%),
+    radial-gradient(ellipse 55%  45% at 50% 50%, rgba(0,50,150,0.22) 0%, transparent 65%),
+    linear-gradient(148deg, #060e30 0%, #090922 45%, #110628 100%);
+}
+#desktop.wp-sunset {
+  background:
+    radial-gradient(ellipse 90% 70% at 20% 80%, rgba(255,100,0,0.45) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 80% 20%, rgba(200,0,100,0.38) 0%, transparent 55%),
+    linear-gradient(160deg, #1a0520 0%, #200818 50%, #080415 100%);
+}
+#desktop.wp-forest {
+  background:
+    radial-gradient(ellipse 90% 70% at 15% 30%, rgba(0,100,40,0.50) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 80% 70%, rgba(0,60,20,0.40) 0%, transparent 55%),
+    linear-gradient(155deg, #030f06 0%, #061208 50%, #020a04 100%);
+}
+#desktop.wp-ocean {
+  background:
+    radial-gradient(ellipse 100% 80% at 20% 60%, rgba(0,100,180,0.50) 0%, transparent 55%),
+    radial-gradient(ellipse 70%  60% at 80% 30%, rgba(0,160,200,0.35) 0%, transparent 55%),
+    linear-gradient(155deg, #040e1c 0%, #06101e 50%, #020c18 100%);
+}
+#desktop.wp-night {
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(30,30,80,0.40) 0%, transparent 65%),
+    linear-gradient(180deg, #06060f 0%, #080810 100%);
+}
+
+/* animated shimmer overlay (all wallpapers) */
+#desktop::before {
+  content:''; position:absolute; inset:0;
+  background:
+    linear-gradient(125deg, transparent 18%, rgba(255,255,255,0.03) 40%, transparent 62%),
+    linear-gradient(210deg, transparent 28%, rgba(255,255,255,0.02) 52%, transparent 74%);
+  animation: shimmer 20s ease-in-out infinite alternate;
+  pointer-events:none;
+}
+@keyframes shimmer {
+  0%   { transform: translate(0,0)    scale(1)    rotate(0deg); }
+  50%  { transform: translate(2%,1%)  scale(1.03) rotate(0.4deg); }
+  100% { transform: translate(-1%,2%) scale(0.97) rotate(-0.3deg); }
+}
+
+/* dot grid */
+#desktop::after {
+  content:''; position:absolute; inset:0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none;
+}
+
+/* ─── Desktop Icons ───────────────────────────── */
+#icon-grid {
+  position:absolute; top:20px; left:20px;
+  display:flex; flex-direction:column; gap:4px; z-index:10;
+}
+
+.desktop-icon {
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  padding:10px 8px 8px; border-radius:var(--r); width:84px; cursor:pointer;
+  border:1px solid transparent;
+  transition:background var(--transition-speed), border-color var(--transition-speed), transform 0.1s;
+  animation: iconFadeIn 0.4s ease both;
+}
+@keyframes iconFadeIn {
+  from { opacity:0; transform:translateY(8px) scale(0.9); }
+  to   { opacity:1; transform:none; }
+}
+.desktop-icon:nth-child(1){animation-delay:.05s}
+.desktop-icon:nth-child(2){animation-delay:.10s}
+.desktop-icon:nth-child(3){animation-delay:.15s}
+.desktop-icon:nth-child(4){animation-delay:.20s}
+.desktop-icon:nth-child(5){animation-delay:.25s}
+.desktop-icon:nth-child(6){animation-delay:.30s}
+
+.desktop-icon:hover    { background:rgba(255,255,255,0.10); border-color:var(--m-stroke2); }
+.desktop-icon:active   { transform:scale(0.90); }
+.desktop-icon.selected { background:var(--accent-sub); border-color:var(--accent-brd); }
+
+.d-ic {
+  font-size:32px; line-height:1;
+  filter:drop-shadow(0 3px 8px rgba(0,0,0,.7));
+  transition:transform 0.15s;
+}
+.desktop-icon:hover .d-ic { transform:translateY(-2px) scale(1.06); }
+
+.d-lb {
+  font-size:11px; font-weight:500;
+  color:rgba(255,255,255,0.92);
+  text-align:center; text-shadow:0 1px 6px rgba(0,0,0,.95);
+  line-height:1.25;
+}
+
+/* ─── Shared utility ──────────────────────────── */
+.nbtn {
+  width:28px; height:28px; border-radius:var(--r-sm);
+  border:1px solid var(--m-stroke); background:var(--m-card);
+  color:var(--text-2); font-size:13px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .1s, color .1s;
+}
+.nbtn:hover { background:var(--m-hover); color:var(--text); }
+
+.cmd-btn {
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:5px 10px; border-radius:var(--r-sm);
+  border:none; background:transparent;
+  color:var(--text-2); font-size:11px; cursor:pointer;
+  transition:background .1s, color .1s;
+  min-width:44px;
+}
+.cmd-btn:hover { background:var(--m-hover); color:var(--text); }
+.cmd-btn .cmd-ico { font-size:16px; }
+
+/* ─── Scrollbar ───────────────────────────────── */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.14); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.24); }
+
+/* ─── Toast ───────────────────────────────────── */
+#toast-area {
+  position:fixed; top:14px; right:14px;
+  display:flex; flex-direction:column; gap:8px;
+  z-index:2000; pointer-events:none;
+}
+.toast {
+  background:var(--m-overlay);
+  border:1px solid var(--m-stroke2);
+  border-radius:var(--r-lg);
+  padding:12px 14px;
+  box-shadow:var(--sh2);
+  backdrop-filter:blur(24px);
+  display:flex; gap:10px; align-items:flex-start;
+  pointer-events:all; max-width:320px; min-width:240px;
+  animation:toastIn .25s cubic-bezier(.34,1.4,.64,1) forwards;
+}
+@keyframes toastIn {
+  from { opacity:0; transform:translateX(54px) scale(.96); }
+  to   { opacity:1; transform:none; }
+}
+.toast-ic  { font-size:20px; flex-shrink:0; margin-top:1px; }
+.toast-hd  { font-size:12.5px; font-weight:600; color:var(--text); }
+.toast-bd  { font-size:11.5px; color:var(--text-2); margin-top:2px; line-height:1.45; }
+
+/* ─── Context Menu ────────────────────────────── */
+#ctx-menu {
+  position:fixed; z-index:3000;
+  background:rgba(26,26,38,0.97);
+  border:1px solid var(--m-stroke2);
+  border-radius:var(--r-lg); padding:5px;
+  min-width:196px; display:none;
+  box-shadow:var(--sh3);
+  backdrop-filter:blur(32px);
+  animation:ctxIn .13s ease forwards;
+}
+@keyframes ctxIn {
+  from { opacity:0; transform:scale(.95) translateY(-4px); }
+  to   { opacity:1; transform:none; }
+}
+.ctx-item {
+  display:flex; align-items:center; gap:10px;
+  padding:7px 12px; border-radius:var(--r-sm);
+  cursor:pointer; color:var(--text-2); font-size:12.5px;
+  transition:background .1s, color .1s;
+}
+.ctx-item:hover { background:var(--m-hover); color:var(--text); }
+.ctx-ic  { font-size:14px; width:18px; text-align:center; flex-shrink:0; }
+.ctx-kb  { margin-left:auto; font-size:11px; color:var(--text-3); }
+.ctx-sep { height:1px; background:var(--m-stroke); margin:4px 6px; }

@@ -1,0 +1,109 @@
+/* ═══════════════════════════════════════════════
+   windows.css — Window chrome, Step 2 & 3
+═══════════════════════════════════════════════ */
+.window {
+  position:absolute;
+  min-width:320px; min-height:200px;
+  background:var(--m-base);
+  border:1px solid var(--m-stroke2);
+  border-radius:var(--r-lg);
+  box-shadow:var(--sh3);
+  display:flex; flex-direction:column;
+  overflow:hidden; z-index:200;
+  backdrop-filter:blur(44px) saturate(1.7);
+  -webkit-backdrop-filter:blur(44px) saturate(1.7);
+  will-change:transform;
+  transition:box-shadow .18s;
+}
+.window.focused  { box-shadow:var(--sh3), 0 0 0 1px var(--accent-brd); }
+.window.minimized { display:none !important; }
+.window.maximized {
+  top:0 !important; left:0 !important;
+  width:100% !important;
+  height:calc(100vh - var(--taskbar-h)) !important;
+  border-radius:0 !important;
+}
+
+@keyframes wOpen  {
+  from { opacity:0; transform:scale(.93) translateY(14px); }
+  to   { opacity:1; transform:none; }
+}
+@keyframes wClose {
+  to { opacity:0; transform:scale(.90) translateY(10px); }
+}
+.w-open  { animation:wOpen  .24s cubic-bezier(.34,1.45,.64,1) forwards; }
+.w-close { animation:wClose .15s ease forwards; }
+
+/* ─── Titlebar ────────────────────────────────── */
+.titlebar {
+  height:34px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 2px 0 12px;
+  cursor:grab;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+}
+.titlebar:active { cursor:grabbing; }
+.titlebar.no-drag { cursor:default; }
+
+.tb-app-info {
+  display:flex; align-items:center; gap:8px;
+  pointer-events:none; flex:1; min-width:0;
+}
+.tb-app-icon { font-size:14px; }
+.tb-app-name {
+  font-size:12px; font-weight:600; color:var(--text);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* ─── Caption buttons ─────────────────────────── */
+.win-cap-btns { display:flex; align-self:stretch; }
+
+.cap-btn {
+  width:46px; height:100%;
+  border:none; background:transparent;
+  color:var(--text-2); font-size:10px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .12s, color .12s;
+}
+.cap-btn:hover           { background:rgba(255,255,255,0.09); color:var(--text); }
+.cap-btn.cap-close:hover { background:#c42b1c; color:#fff; }
+.cap-btn svg {
+  width:10px; height:10px;
+  fill:none; stroke:currentColor;
+  stroke-width:1.5; stroke-linecap:round;
+}
+
+/* Snap layout tooltip */
+.cap-btn.cap-max { position:relative; }
+.snap-tip {
+  position:absolute; bottom:calc(100% + 8px); right:0;
+  background:var(--m-overlay); border:1px solid var(--m-stroke2);
+  border-radius:var(--r); padding:10px; z-index:99;
+  display:none; flex-direction:column; gap:5px;
+  box-shadow:var(--sh2); min-width:120px;
+}
+.cap-btn.cap-max:hover .snap-tip { display:flex; }
+.snap-label { font-size:10px; color:var(--text-3); text-align:center; padding-bottom:4px; border-bottom:1px solid var(--m-stroke); margin-bottom:2px; }
+.snap-row   { display:flex; gap:4px; justify-content:center; }
+.snap-cell  {
+  height:22px; border-radius:3px;
+  border:1px solid var(--m-stroke2); background:var(--m-card);
+  cursor:pointer; flex:1; min-width:24px;
+  transition:background .1s, border-color .1s;
+}
+.snap-cell:hover { background:var(--accent-sub); border-color:var(--accent-brd); }
+
+/* ─── Window body ─────────────────────────────── */
+.win-body { flex:1; overflow:auto; display:flex; flex-direction:column; min-height:0; }
+
+/* ─── Resize handle ───────────────────────────── */
+.win-rsz {
+  position:absolute; bottom:0; right:0;
+  width:14px; height:14px; cursor:se-resize; z-index:10;
+  background:
+    linear-gradient(135deg,
+      transparent 40%, rgba(255,255,255,0.10) 40%, rgba(255,255,255,0.10) 54%,
+      transparent 54%, transparent 64%,
+      rgba(255,255,255,0.10) 64%, rgba(255,255,255,0.10) 78%,
+      transparent 78%);
+}

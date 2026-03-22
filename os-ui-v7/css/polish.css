@@ -1,0 +1,124 @@
+/* ═══════════════════════════════════════════════
+   polish.css — Step 7: animations & micro-interactions
+═══════════════════════════════════════════════ */
+
+/* ─── Ripple on taskbar pins ─────────────────── */
+.tb-pin::before {
+  content:''; position:absolute; inset:0;
+  border-radius:var(--r); background:var(--accent-sub);
+  opacity:0; transform:scale(0.6);
+  transition:opacity .18s, transform .18s;
+}
+.tb-pin:active::before { opacity:1; transform:scale(1); }
+
+/* ─── Window appear / focus glow ─────────────── */
+.window.focused .titlebar {
+  background:linear-gradient(to bottom,
+    rgba(255,255,255,0.04) 0%,
+    transparent 100%);
+}
+
+/* ─── Taskbar hover tooltip ──────────────────── */
+.tb-pin-tooltip {
+  position:absolute; bottom:calc(100% + 8px); left:50%;
+  transform:translateX(-50%);
+  background:var(--m-overlay); border:1px solid var(--m-stroke2);
+  border-radius:var(--r-sm); padding:4px 10px;
+  font-size:11.5px; color:var(--text);
+  white-space:nowrap; pointer-events:none;
+  box-shadow:var(--sh1);
+  opacity:0; animation:none;
+  transition:opacity .12s;
+}
+.tb-pin:hover .tb-pin-tooltip { opacity:1; }
+
+/* Tooltip arrow */
+.tb-pin-tooltip::after {
+  content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  border:4px solid transparent;
+  border-top-color:var(--m-stroke2);
+}
+
+/* ─── Start menu app hover bounce ────────────── */
+.sm-app { transition:background .14s, color .14s, border-color .14s, transform .12s; }
+.sm-app:active { transform:scale(.92); }
+
+/* ─── Desktop icon selection rubber-band ─────── */
+#select-box {
+  position:absolute; border:1px solid var(--accent-brd);
+  background:var(--accent-sub); border-radius:2px;
+  pointer-events:none; z-index:5; display:none;
+}
+
+/* ─── Window minimise bounce ─────────────────── */
+@keyframes wMinBounce {
+  0%   { transform:scale(1) translateY(0); }
+  40%  { transform:scale(.96) translateY(4px); }
+  100% { transform:scale(.90) translateY(20px); opacity:0; }
+}
+.w-minimize { animation:wMinBounce .18s ease forwards; }
+
+/* ─── Taskbar button press ───────────────────── */
+.tapp:active { transform:scale(.94); }
+
+/* ─── Focus ring on inputs ───────────────────── */
+input:focus, textarea:focus, select:focus {
+  outline:none;
+}
+
+/* ─── Smooth accent-colour transitions ───────── */
+body {
+  transition:--accent .3s, --accent-hi .3s, --accent-sub .3s;
+}
+
+/* ─── Brightness overlay for "dim" effect ───── */
+#brightness-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0);
+  pointer-events:none; z-index:9999;
+  transition:background .4s ease;
+}
+
+/* ─── Snap preview ghost ─────────────────────── */
+#snap-preview {
+  position:fixed; background:var(--accent-sub);
+  border:2px solid var(--accent-brd); border-radius:var(--r-lg);
+  pointer-events:none; z-index:190;
+  transition:all .15s cubic-bezier(.4,0,.2,1);
+  display:none;
+}
+
+/* ─── Context menu separator polish ─────────── */
+.ctx-sep { transition:opacity .1s; }
+
+/* ─── Notification badge ─────────────────────── */
+.tb-badge {
+  position:absolute; top:6px; right:6px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--accent-hi);
+  border:2px solid rgba(20,20,32,0.9);
+  animation:badgePop .25s cubic-bezier(.34,1.5,.64,1) forwards;
+}
+@keyframes badgePop {
+  from { transform:scale(0); }
+  to   { transform:scale(1); }
+}
+
+/* ─── Improved scrollbar ─────────────────────── */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb {
+  background:rgba(255,255,255,0.14); border-radius:3px;
+  transition:background .15s;
+}
+::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.26); }
+
+/* ─── Pane resize drag cursor ────────────────── */
+.pane-side { resize:none; }
+.win-rsz   { transition:opacity .15s; }
+.window:not(:hover) .win-rsz { opacity:.4; }
+
+/* ─── Soft hover on all mica cards ───────────── */
+.set-card, .nc-notif, .brw-tile, .sm-rec {
+  transition:background .14s, transform .1s, border-color .14s;
+}
+.set-card:hover { transform:translateY(-1px); }
